@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react';
 import type { Trace } from './types';
 
-export function useTrace(code: string, initial: object, attempt: number) {
-  const [trace, setTrace] = useState<Trace>();
+export function useTrace(code: string, initial: object, attempt: number, free = false) {
+  const [result, setResult] = useState<{ key: string; trace: Trace }>();
   const [status, setStatus] = useState('Préparation de Python…');
   const [failure, setFailure] = useState('');
   const initialJSON = JSON.stringify(initial);
+  const key = JSON.stringify([code, initialJSON, attempt, free]);
   useEffect(() => {
-    setTrace(undefined);
+    setResult(undefined);
     setFailure('');
     setStatus('Chargement de Python dans votre navigateur…');
     const worker = new Worker(new URL('./python.worker.ts', import.meta.url), { type: 'module' });
@@ -34,7 +35,7 @@ export function useTrace(code: string, initial: object, attempt: number) {
       }
       if (data.type === 'result') {
         clearTimeout(timer);
-        setTrace(data.trace);
+        setResult({ key, trace: data.trace });
         worker.terminate();
       }
       if (data.type === 'failure') {
@@ -52,11 +53,12 @@ export function useTrace(code: string, initial: object, attempt: number) {
       code,
       initial: JSON.parse(initialJSON),
       base: new URL(import.meta.env.BASE_URL, location.origin).href,
+      free,
     });
     return () => {
       clearTimeout(timer);
       worker.terminate();
     };
-  }, [code, initialJSON, attempt]);
-  return { trace, status, failure };
+  }, [code, initialJSON, attempt, free]);
+  return { trace: result?.key === key ? result.trace : undefined, status, failure };
 }

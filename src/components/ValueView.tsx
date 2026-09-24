@@ -18,7 +18,7 @@ export function ValueView({ value, previous }: { value: Value; previous?: Value 
         </>
       )}
       {typeof value === 'object' && value !== null ? (
-        <a className="reference" href={`#object-${value.ref}`} title="Voir l’objet référencé">
+        <a className="reference" href={`#object-${value.ref}`} title="Voir l’objet référencé" onClick={event => { event.preventDefault(); const object = document.getElementById(`object-${value.ref}`); object?.scrollIntoView({ block: 'nearest' }); object?.focus({ preventScroll: true }); }}>
           ↗ #{value.ref}
         </a>
       ) : (

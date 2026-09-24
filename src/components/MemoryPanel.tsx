@@ -135,6 +135,8 @@ function SearchView({ exercise, step }: { exercise: Exercise; step?: Step }) {
       ? (scope[config.right] as number)
       : items.length - 1;
   const middle = ended ? result : scope[config.middle];
+  const excludedRight = !ended && config.rightExclusive ? right - 1 : right;
+  const excluded = (i: number) => i < left || i > excludedRight;
   return (
     <div className="search-view">
       <div className="section-label">
@@ -146,7 +148,7 @@ function SearchView({ exercise, step }: { exercise: Exercise; step?: Step }) {
         ) : (
           <>
             gauche = {left} <span>milieu = {typeof middle === 'number' ? middle : '—'}</span> droite
-            = {right}
+            = {right}{config.rightExclusive ? ' (exclue)' : ' (incluse)'}
           </>
         )}
       </div>
@@ -154,15 +156,16 @@ function SearchView({ exercise, step }: { exercise: Exercise; step?: Step }) {
         {items.map((value, i) => (
           <div
             key={i}
-            className={`${i < left || i > right ? 'excluded' : 'possible'} ${i === middle ? 'examined' : ''}`}
+            className={`${excluded(i) ? 'excluded' : 'possible'} ${i === middle ? 'examined' : ''}`}
           >
             <small>{i}</small>
             <ValueView value={value} />
-            <span>{i === middle ? '▼' : i < left || i > right ? '×' : '·'}</span>
+            <span>{i === middle ? '▼' : excluded(i) ? '×' : '·'}</span>
           </div>
         ))}
       </div>
-      <p>▼ case examinée · × case exclue{left > right ? ' · Zone vide : cible absente' : ''}</p>
+      {!items.length && <p>Liste vide : aucune case à examiner.</p>}
+      <p>▼ case examinée · × hors de l’intervalle{ended && result === -1 ? ' · Cible absente' : left > excludedRight ? ' · Intervalle vide' : ''}</p>
     </div>
   );
 }

@@ -12,7 +12,7 @@ async function seek(page: Page, value: 'end' | number) {
 test('les trois ateliers, les alias, le retour arrière et la progression', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', (error) => errors.push(error.message));
-  await page.goto('./');
+  await page.goto('./#exercise/factorielle');
   await ready(page);
   await expect(page.getByRole('heading', { name: 'La récursion.' })).toBeVisible();
   await seek(page, 10);
@@ -24,7 +24,7 @@ test('les trois ateliers, les alias, le retour arrière et la progression', asyn
   await expect(page.locator('.frame-card')).toHaveCount(0);
   await page.getByRole('button', { name: 'Étape précédente' }).click();
   await expect(page.getByRole('button', { name: 'Étape suivante' })).toBeEnabled();
-  await page.getByRole('button', { name: /La dichotomie Chercher/ }).click();
+  await page.goto('./#exercise/dichotomie');
   await ready(page);
   await seek(page, 'end');
   await expect(page.getByTestId('stdout')).toHaveText('8\n');
@@ -36,7 +36,7 @@ test('les trois ateliers, les alias, le retour arrière et la progression', asyn
   await page.screenshot({ path: 'test-results/dichotomie-desktop.png', fullPage: true });
   await seek(page, 'end');
   await expect(page.getByTestId('stdout')).toHaveText('-1\n');
-  await page.getByRole('button', { name: /Les objets Deux personnages/ }).click();
+  await page.goto('./#exercise/personnages');
   await ready(page);
   await seek(page, 'end');
   await expect(page.getByTestId('stdout')).toHaveText('Lara 18\nMilo 12\n');
@@ -52,16 +52,18 @@ test('les trois ateliers, les alias, le retour arrière et la progression', asyn
     .locator('a')
     .getAttribute('href');
   expect(aliasRef).toBe(laraRef);
+  await page.locator('.globals a').first().click();
+  await expect(page).toHaveURL(/#exercise\/personnages/);
   await page.evaluate(() => window.scrollTo(0, 0));
   await page.screenshot({ path: 'test-results/objets-desktop.png', fullPage: true });
   await page.reload();
   await expect(page.getByTestId('stdout')).toHaveText('Lara 18\nMilo 12\n', { timeout: 60000 });
   await expect(page.getByRole('heading', { name: 'Les objets.' })).toBeVisible();
-  await expect(page.getByText('3 sur 3 ateliers explorés')).toBeVisible();
+  await expect(page.getByText('3 / 18 exercices explorés')).toBeVisible();
   expect(errors).toEqual([]);
 });
 test('lecture, pause, clavier, questions, filtres et mobile', async ({ page }) => {
-  await page.goto('./');
+  await page.goto('./#exercise/factorielle');
   await ready(page);
   await page.getByRole('button', { name: 'Lecture automatique' }).click();
   await expect(page.getByRole('button', { name: 'Pause', exact: true })).toBeVisible();
@@ -76,15 +78,18 @@ test('lecture, pause, clavier, questions, filtres et mobile', async ({ page }) =
   await page.getByRole('button', { name: '1', exact: true }).click();
   await expect(page.getByText(/Bien vu !/)).toBeVisible();
   await expect(page.getByRole('button', { name: 'Étape suivante' })).toBeEnabled();
-  await page.getByRole('button', { name: 'Objets', exact: true }).click();
-  await expect(page.locator('.exercise-card')).toHaveCount(1);
-  await page.getByRole('textbox', { name: 'Rechercher un atelier' }).fill('inexistant');
-  await expect(page.getByText(/Aucun atelier trouvé/)).toBeVisible();
+  await page.getByRole('link', { name: 'Tous les exercices', exact: true }).click();
+  await page.getByLabel('Filtrer par notion').selectOption('poo');
+  await expect(page.locator('.learning-exercise')).toHaveCount(7);
+  await page.getByRole('textbox', { name: 'Rechercher un exercice' }).fill('inexistant');
+  await expect(page.getByText(/Aucun exercice ne correspond/)).toBeVisible();
   await page.getByRole('button', { name: 'Le guide', exact: true }).click();
   await expect(page.getByRole('dialog')).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(page.getByRole('dialog')).not.toBeVisible();
   await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('./#exercise/factorielle');
+  await expect(page.getByRole('slider')).toBeEnabled({timeout:60000});
   await expect(page.getByRole('button', { name: 'Étape suivante' })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
     true,

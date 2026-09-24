@@ -1,9 +1,10 @@
 import type { Exercise } from '../src/engine/types';
 export default {
   id: 'factorielle',
+  recommendedLevel: 'terminale', notions: ['recursion', 'cas-base', 'pile', 'retours'], prerequisites: ['fonctions', 'conditions'], objective: 'Relier une multiplication au retour de l’appel récursif.', difficulty: 2,
   title: 'La récursion',
   subtitle: 'Une fonction qui s’appelle elle-même',
-  level: 'Première',
+  level: 'Terminale',
   themes: ['Récursion'],
   visualization: 'recursion',
   instruction:

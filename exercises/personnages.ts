@@ -1,6 +1,7 @@
 import type { Exercise } from '../src/engine/types';
 export default {
   id: 'personnages',
+  recommendedLevel: 'terminale', notions: ['poo', 'self', 'references', 'mutation', 'pile'], prerequisites: ['fonctions', 'listes'], objective: 'Distinguer self dans deux méthodes imbriquées et suivre leurs effets.', difficulty: 3,
   title: 'Les objets',
   subtitle: 'Deux personnages, des références',
   level: 'Terminale',

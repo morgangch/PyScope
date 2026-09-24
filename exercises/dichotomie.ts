@@ -1,6 +1,7 @@
 import type { Exercise } from '../src/engine/types';
 export default {
   id: 'dichotomie',
+  recommendedLevel: 'premiere', notions: ['dichotomie', 'bornes', 'listes'], prerequisites: ['boucles', 'conditions', 'fonctions'], objective: 'Réduire une zone de recherche fermée sans perdre la cible.', difficulty: 2,
   title: 'La dichotomie',
   subtitle: 'Chercher en divisant par deux',
   level: 'Première',

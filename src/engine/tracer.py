@@ -5,7 +5,7 @@ import types
 import math
 
 
-def trace_program(source, initial=None, max_steps=1200):
+def trace_program(source, initial=None, max_steps=1200, free_mode=False):
     filename = '<exercice>'
     namespace = {'__name__': '__main__', **(initial or {})}
     steps, active, output = [], [], []
@@ -13,6 +13,29 @@ def trace_program(source, initial=None, max_steps=1200):
     last_line = 1
     limit_hit = False
     frame_counter = 0
+    trace_bytes = 0
+
+    def check_memory():
+        # Bound retained Python data, including objects kept for stable identities.
+        pending = [namespace, kept_alive] + [f.f_locals for f in active]
+        visited, total = set(), 0
+        while pending:
+            value = pending.pop()
+            if id(value) in visited or not visible(value):
+                continue
+            visited.add(id(value))
+            total += sys.getsizeof(value)
+            if total > 2 * 1024 * 1024:
+                raise TraceLimit('Mémoire des données limitée à 2 Mio (hors interpréteur).')
+            if type(value) in (list, tuple):
+                pending.extend(value)
+            elif type(value) is dict:
+                for k, v in value.items():
+                    if isinstance(k, str) and k.startswith('__'):
+                        continue
+                    pending.extend((k, v))
+            elif hasattr(value, '__dict__'):
+                pending.append(vars(value))
 
     class TraceLimit(Exception):
         pass
@@ -21,11 +44,13 @@ def trace_program(source, initial=None, max_steps=1200):
         return not isinstance(value, (types.FunctionType, types.ModuleType, type, types.BuiltinFunctionType))
 
     def capture(event, frame=None, returned=None, message=None):
-        nonlocal last_line, limit_hit
+        nonlocal last_line, limit_hit, trace_bytes
         if len(steps) >= max_steps:
             limit_hit = True
             raise TraceLimit('Limite de %s étapes atteinte.' % max_steps)
         heap, references = {}, []
+        if free_mode:
+            check_memory()
 
         def encode(value, source_name='', depth=0):
             if value is None or type(value) in (str, bool, int):
@@ -91,7 +116,11 @@ def trace_program(source, initial=None, max_steps=1200):
         if message:
             step['error'] = message
         # Aucun objet mutable Python n'est conservé dans les instantanés.
-        steps.append(json.loads(json.dumps(step, ensure_ascii=False)))
+        encoded = json.dumps(step, ensure_ascii=False)
+        trace_bytes += len(encoded.encode('utf-8'))
+        if trace_bytes > 4 * 1024 * 1024:
+            raise TraceLimit('Mémoire de la trace limitée à 4 Mio.')
+        steps.append(json.loads(encoded))
 
     def tracer(frame, event, arg):
         nonlocal frame_counter
@@ -131,7 +160,11 @@ def trace_program(source, initial=None, max_steps=1200):
     error = None
     previous_stdout = sys.stdout
     try:
-        compiled = compile(source, filename, 'exec')
+        if free_mode:
+            compiled, restricted = prepare_free(source, filename)
+            namespace.update(restricted)
+        else:
+            compiled = compile(source, filename, 'exec')
         sys.stdout = Output()
         sys.settrace(tracer)
         exec(compiled, namespace)
@@ -148,5 +181,12 @@ def trace_program(source, initial=None, max_steps=1200):
     # Une dernière capture explicite présente l'état après la dernière instruction.
     if len(steps) >= max_steps:
         steps.pop()
-    capture('error' if error else 'end', message=error)
+    if error:
+        steps.append({'line':last_line,'event':'error','stack':[], 'globals':{},'objects':{},'references':[],'stdout':''.join(output),'error':error})
+    else:
+        try:
+            capture('end')
+        except TraceLimit as exc:
+            error = str(exc)
+            steps.append({'line':last_line,'event':'error','stack':[], 'globals':{},'objects':{},'references':[],'stdout':''.join(output),'error':error})
     return json.dumps({'steps': steps, 'error': error}, ensure_ascii=False)

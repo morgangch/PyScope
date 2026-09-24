@@ -1,6 +1,7 @@
 import { Layers3, CornerDownLeft, ArrowDown } from 'lucide-react';
 import type { Step } from '../engine/types';
 import { displayValue, ValueView } from './ValueView';
+import { frameLabel } from '../engine/questions';
 
 export function StackPanel({ step, previous }: { step?: Step; previous?: Step }) {
   const frames = step?.stack || [];
@@ -77,12 +78,7 @@ export function StackPanel({ step, previous }: { step?: Step; previous?: Step })
               )}
               {child && (
                 <p className="waiting-hint">
-                  Attend {child.name}(
-                  {child.parameters
-                    .filter((p) => p !== 'self')
-                    .map((p) => displayValue(child.locals[p]))
-                    .join(', ')}
-                  )
+                  Attend {step ? frameLabel(step, child) : child.name}
                 </p>
               )}
               {active && step?.event === 'return' && (
